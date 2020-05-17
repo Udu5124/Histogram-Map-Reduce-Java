@@ -1,0 +1,80 @@
+You can use your laptop to develop your program and then test it and run it on Comet. This step is optional but highly recommended because it will save you a lot of time. Note that testing and running your program on Comet is required.
+
+If you have Mac OSX or Linux, make sure you have Java and Maven installed (on Mac, you can install Maven using Homebrew brew install maven, on Ubuntu Linux, use apt install maven). If you have Windows 10, you need to install Ubuntu Shell and do: sudo apt update, sudo apt upgrade, and sudo apt install openjdk-8-jdk maven.
+
+To install Hadoop and the project, cut&paste and execute on the unix shell:
+
+cd
+wget https://archive.apache.org/dist/hadoop/common/hadoop-2.6.5/hadoop-2.6.5.tar.gz
+tar xfz hadoop-2.6.5.tar.gz
+wget http://lambda.uta.edu/cse6331/project1.tgz
+tar xfz project1.tgz
+You should also set your JAVA_HOME to point to your java installation. For example, on Windows do:
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+To test Map-Reduce, go to project1/examples/src/main/java and look at the two Map-Reduce examples Simple.java and Join.java. You can compile both Java files using:
+mvn install
+and you can run Simple in standalone mode using:
+~/hadoop-2.6.5/bin/hadoop jar target/*.jar Simple simple.txt output-simple
+The file output-simple/part-r-00000 will contain the results.
+To compile and run project1:
+
+cd project1
+mvn install
+rm -rf output
+~/hadoop-2.6.5/bin/hadoop jar target/*.jar Histogram pixels-small.txt output
+The file output/part-r-00000 will contain the results which must be equal to solution-small.txt. After your project works correctly on your laptop (it produces the same results as the solution), copy it to Comet:
+cd
+rm project1.tgz
+tar cfz project1.tgz project1
+scp project1.tgz xyz1234@comet.sdsc.edu:
+where xyz1234 is your Comet username.
+
+Edit the file .bashrc (note: it starts with a dot) using a text editor, such as nano .bashrc, and add the following 2 lines at the end (cut-and-paste):
+
+export JAVA_HOME=/lib/jvm/java
+alias run='srun --pty -A uot143 --partition=shared --nodes=1 --ntasks-per-node=1 --mem=5G -t 00:05:00 --wait=0 --export=ALL'
+export project=/oasis/projects/nsf/uot143/fegaras
+logout and login again to apply the changes. If you have already developed project1 on your laptop, copy project1.tgz from your laptop to Comet. Otherwise, download project1 from the class web site:
+wget http://lambda.uta.edu/cse6331/project1.tgz
+Untar it:
+tar xfz project1.tgz
+rm project1.tgz
+chmod -R g-wrx,o-wrx project1
+Go to project1/examples and look at the two Map-Reduce examples src/main/java/Simple.java and src/main/java/Join.java. You can compile both Java files using:
+run example.build
+and you can run them in standalone mode using:
+sbatch example.local.run
+The file example.local.out will contain the trace log of the Map-Reduce evaluation while the files output-simple/part-r-00000 output-join/part-r-00000 will contain the results.
+You can compile Histogram.java on Comet using:
+
+run histogram.build
+and you can run Histogram.java in standalone mode over a small dataset using:
+sbatch histogram.local.run
+The file histogram.local.out will contain the trace log of the Map-Reduce evaluation while the file output/part-r-00000 will contain the results. These results must be equal to solution-small.txt. To run Histogram.java in distributed mode over a larger dataset, use:
+sbatch histogram.distr.run
+
+Project Description: Pixel Histograms
+A pixel in an image can be represented using 3 colors: red, green, and blue, where each color intensity is an integer between 0 and 255. In this project, you are asked to write a Map-Reduce program that derives a histogram for each color. For red, for example, the histogram will indicate how many pixels in the dataset have a green value equal to 0, equal to 1, etc (256 values). The pixel file is a text file that has one text line for each pixel. For example, the line
+
+23,140,45
+represents a pixel with red=23, green=140, and blue=45.
+You should write one Map-Reduce job in the Java file src/main/java/Histogram.java. An empty src/main/java/Histogram.java has been provided, as well as scripts to build and run this code on Comet. You should modify the Histogram.java only.
+
+To help you, I am giving you the pseudo code:
+
+class Color {
+    public short type;       /* red=1, green=2, blue=3 */
+    public short intensity;  /* between 0 and 255 */
+}
+map ( key, line ):
+  read 3 numbers from the line and store them in the variables red, green, and blue. Each number is between 0 and 255.
+  emit( Color(1,red), 1 )
+  emit( Color(2,green), 1 )
+  emit( Color(3,blue), 1 )
+
+reduce ( color, values )
+  sum = 0
+  for ( v in values )
+      sum += v
+  emit( color, sum )
+In your Java main program args[0] is the file with the pixels (pixels-small.txt or pixels-large.txt) and args[1] is the output directory.
